@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/contacts_background"
     tools:context=".ui.contacts.ContactsFragment">
 
     <androidx.recyclerview.widget.RecyclerView
@@ -11,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:padding="8dp"
+        android:padding="12dp"
         android:visibility="visible"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         tools:listitem="@layout/item_contact" />
@@ -22,7 +23,8 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:text="@string/no_contacts"
-        android:textSize="16sp"
+        android:textSize="18sp"
+        android:textColor="@color/accent_dark"
         android:visibility="gone" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -34,6 +36,7 @@
         android:contentDescription="@string/add_contact"
         android:src="@drawable/ic_person_add"
         app:tint="@android:color/white"
-        app:backgroundTint="@color/design_default_color_primary" />
+        app:backgroundTint="@color/fab_color"
+        app:elevation="6dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

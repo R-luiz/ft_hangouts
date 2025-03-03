@@ -23,4 +23,15 @@
     <!-- Permission error colors -->
     <color name="permission_error_background">#FFCDD2</color>
     <color name="permission_error_text">#B71C1C</color>
+    
+    <!-- Background colors -->
+    <color name="background_primary">#F5F7FA</color>
+    <color name="background_secondary">#EFF2F7</color>
+    <color name="background_message">#E5EDF5</color>
+    <color name="background_contact_form">#F8F9FC</color>
+    <color name="accent_light">#8ECAE6</color>
+    <color name="accent_medium">#219EBC</color>
+    <color name="accent_dark">#023047</color>
+    <color name="accent_warm">#FFB703</color>
+    <color name="fab_color">#219EBC</color>
 </resources>
