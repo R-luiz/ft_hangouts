@@ -12,6 +12,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.telephony.SmsManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -330,9 +331,10 @@ public class MessageFragment extends Fragment {
             // Scroll to bottom if there are messages
             if (messages.size() > 0 && messagesRecyclerView != null) {
                 try {
+                    final int finalPosition = messages.size() - 1;
                     messagesRecyclerView.post(() -> {
                         try {
-                            messagesRecyclerView.scrollToPosition(messages.size() - 1);
+                            messagesRecyclerView.scrollToPosition(finalPosition);
                         } catch (Exception e) {
                             Log.e("MessageFragment", "Error scrolling to bottom", e);
                         }
@@ -520,13 +522,13 @@ public class MessageFragment extends Fragment {
             // Scroll to the bottom
             try {
                 if (messagesRecyclerView != null && messageAdapter != null) {
-                    final int position = messageAdapter.getItemCount() - 1;
-                    if (position >= 0) {
+                    final int finalPosition = messageAdapter.getItemCount() - 1;
+                    if (finalPosition >= 0) {
                         messagesRecyclerView.post(() -> {
                             try {
-                                messagesRecyclerView.scrollToPosition(position);
+                                messagesRecyclerView.scrollToPosition(finalPosition);
                             } catch (Exception e) {
-                                Log.e("MessageFragment", "Error scrolling to position " + position, e);
+                                Log.e("MessageFragment", "Error scrolling to position " + finalPosition, e);
                             }
                         });
                     }
