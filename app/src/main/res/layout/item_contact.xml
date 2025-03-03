@@ -44,5 +44,14 @@
                 android:textColor="@android:color/darker_gray"
                 android:textSize="14sp" />
         </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btn_message"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Send Message"
+            android:src="@drawable/ic_message" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>

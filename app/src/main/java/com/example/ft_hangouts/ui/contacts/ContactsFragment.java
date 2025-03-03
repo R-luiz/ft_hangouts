@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -80,5 +81,20 @@ public class ContactsFragment extends Fragment implements ContactsAdapter.OnCont
         Bundle args = new Bundle();
         args.putSerializable("contact", contact);
         navController.navigate(R.id.action_nav_contacts_to_contactFormFragment, args);
+    }
+    
+    @Override
+    public void onMessageClick(Contact contact, int position) {
+        // Check if contact has a phone number
+        if (contact.getPhoneNumber() == null || contact.getPhoneNumber().isEmpty()) {
+            Toast.makeText(requireContext(), "Contact has no phone number", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Navigate to message screen
+        NavController navController = Navigation.findNavController(requireView());
+        Bundle args = new Bundle();
+        args.putSerializable("contact", contact);
+        navController.navigate(R.id.action_nav_contacts_to_messageFragment, args);
     }
 }

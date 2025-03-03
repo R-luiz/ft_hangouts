@@ -4,6 +4,7 @@ import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -23,6 +24,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.Contac
 
     public interface OnContactClickListener {
         void onContactClick(Contact contact, int position);
+        void onMessageClick(Contact contact, int position);
     }
 
     public ContactsAdapter(List<Contact> contacts, OnContactClickListener listener) {
@@ -58,12 +60,14 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.Contac
         private CircleImageView contactImage;
         private TextView contactName;
         private TextView contactPhone;
+        private ImageButton messageButton;
 
         public ContactViewHolder(@NonNull View itemView) {
             super(itemView);
             contactImage = itemView.findViewById(R.id.contact_image);
             contactName = itemView.findViewById(R.id.contact_name);
             contactPhone = itemView.findViewById(R.id.contact_phone);
+            messageButton = itemView.findViewById(R.id.btn_message);
         }
 
         public void bind(final Contact contact, final int position) {
@@ -78,12 +82,24 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.Contac
                 contactImage.setImageResource(R.mipmap.ic_launcher_round);
             }
 
-            // Set click listener
+            // Set click listener for the whole item (edit contact)
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
                     listener.onContactClick(contact, position);
                 }
             });
+            
+            // Set click listener for the message button
+            messageButton.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onMessageClick(contact, position);
+                }
+            });
+            
+            // Only enable message button if a phone number exists
+            boolean hasPhoneNumber = contact.getPhoneNumber() != null && !contact.getPhoneNumber().isEmpty();
+            messageButton.setEnabled(hasPhoneNumber);
+            messageButton.setAlpha(hasPhoneNumber ? 1.0f : 0.3f);
         }
     }
 }
