@@ -44,29 +44,30 @@ public class ContactsViewModel extends AndroidViewModel {
         });
     }
 
-    public long addContact(Contact contact) {
-        final long[] contactId = {-1};
-        
-        try {
-            // Using a CountDownLatch to make this synchronous
-            java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
-            
-            executorService.execute(() -> {
-                contactId[0] = dbHelper.addContact(contact);
-                if (contactId[0] > 0) {
-                    contact.setId(contactId[0]);
+    // LiveData to track the success of contact operations
+    private final MutableLiveData<Long> contactCreationResult = new MutableLiveData<>();
+    
+    public LiveData<Long> getContactCreationResult() {
+        return contactCreationResult;
+    }
+
+    public void addContact(Contact contact) {
+        loading.setValue(true);
+        executorService.execute(() -> {
+            try {
+                long contactId = dbHelper.addContact(contact);
+                if (contactId > 0) {
+                    contact.setId(contactId);
                     loadContacts();
                 }
-                latch.countDown();
-            });
-            
-            // Wait for the database operation to complete
-            latch.await(2, java.util.concurrent.TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        
-        return contactId[0];
+                contactCreationResult.postValue(contactId);
+            } catch (Exception e) {
+                e.printStackTrace();
+                contactCreationResult.postValue(-1L);
+            } finally {
+                loading.postValue(false);
+            }
+        });
     }
 
     public void updateContact(Contact contact) {

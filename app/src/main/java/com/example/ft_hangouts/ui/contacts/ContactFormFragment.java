@@ -2,6 +2,8 @@ package com.example.ft_hangouts.ui.contacts;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -57,16 +59,49 @@ public class ContactFormFragment extends Fragment {
                     Uri imageUri = result.getData().getData();
                     try {
                         InputStream inputStream = requireActivity().getContentResolver().openInputStream(imageUri);
-                        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                        contactPhoto.setImageBitmap(bitmap);
-                        
-                        // Convert bitmap to byte array for storage
-                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos);
-                        photoBytes = baos.toByteArray();
-                    } catch (IOException e) {
+                        if (inputStream != null) {
+                            BitmapFactory.Options options = new BitmapFactory.Options();
+                            options.inSampleSize = 2; // Downsample to reduce memory usage
+                            
+                            Bitmap bitmap = BitmapFactory.decodeStream(inputStream, null, options);
+                            if (bitmap != null) {
+                                contactPhoto.setImageBitmap(bitmap);
+                                
+                                // Limit image size for storage
+                                int maxDimension = 800; // reasonable size for contact photo
+                                Bitmap resizedBitmap = bitmap;
+                                
+                                if (bitmap.getWidth() > maxDimension || bitmap.getHeight() > maxDimension) {
+                                    float ratio = Math.min(
+                                        (float) maxDimension / bitmap.getWidth(),
+                                        (float) maxDimension / bitmap.getHeight()
+                                    );
+                                    
+                                    int width = Math.round(bitmap.getWidth() * ratio);
+                                    int height = Math.round(bitmap.getHeight() * ratio);
+                                    
+                                    resizedBitmap = Bitmap.createScaledBitmap(bitmap, width, height, true);
+                                    if (resizedBitmap != bitmap) {
+                                        bitmap.recycle(); // Free up the original bitmap
+                                    }
+                                }
+                                
+                                // Convert bitmap to byte array for storage
+                                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos);
+                                photoBytes = baos.toByteArray();
+                                
+                                if (resizedBitmap != bitmap) {
+                                    resizedBitmap.recycle();
+                                }
+                            } else {
+                                Toast.makeText(getContext(), "Failed to decode image", Toast.LENGTH_SHORT).show();
+                            }
+                            inputStream.close();
+                        }
+                    } catch (IOException | OutOfMemoryError e) {
                         e.printStackTrace();
-                        Toast.makeText(getContext(), "Failed to load image", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Failed to load image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 }
             });
@@ -183,29 +218,39 @@ public class ContactFormFragment extends Fragment {
     }
 
     private void saveContact() {
-        String name = editName.getText().toString().trim();
-        String phone = editPhone.getText().toString().trim();
-        String email = editEmail.getText().toString().trim();
-        String address = editAddress.getText().toString().trim();
-        String notes = editNotes.getText().toString().trim();
+        // Ensure we have a context
+        Context context = getContext();
+        if (context == null) return;
+        
+        // Get text safely - avoid NullPointerExceptions
+        String name = editName != null && editName.getText() != null ? 
+                      editName.getText().toString().trim() : "";
+        String phone = editPhone != null && editPhone.getText() != null ? 
+                       editPhone.getText().toString().trim() : "";
+        String email = editEmail != null && editEmail.getText() != null ? 
+                       editEmail.getText().toString().trim() : "";
+        String address = editAddress != null && editAddress.getText() != null ? 
+                         editAddress.getText().toString().trim() : "";
+        String notes = editNotes != null && editNotes.getText() != null ? 
+                       editNotes.getText().toString().trim() : "";
 
         // Validate input
         boolean hasError = false;
         
         if (name.isEmpty()) {
-            editName.setError("Name is required");
+            if (editName != null) editName.setError(getString(R.string.name_required));
             hasError = true;
         }
         
         // Basic phone number validation
         if (!phone.isEmpty() && !isValidPhoneNumber(phone)) {
-            editPhone.setError("Invalid phone number format");
+            if (editPhone != null) editPhone.setError(getString(R.string.invalid_phone));
             hasError = true;
         }
         
         // Basic email validation
         if (!email.isEmpty() && !isValidEmail(email)) {
-            editEmail.setError("Invalid email format");
+            if (editEmail != null) editEmail.setError(getString(R.string.invalid_email));
             hasError = true;
         }
         
@@ -213,6 +258,12 @@ public class ContactFormFragment extends Fragment {
             return;
         }
 
+        // Show loading indicator
+        ProgressDialog progressDialog = new ProgressDialog(context);
+        progressDialog.setMessage("Saving contact...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        
         // Create or update contact
         if (isEditMode && currentContact != null) {
             currentContact.setName(name);
@@ -226,21 +277,43 @@ public class ContactFormFragment extends Fragment {
             }
             
             viewModel.updateContact(currentContact);
-            Toast.makeText(getContext(), "Contact updated successfully", Toast.LENGTH_SHORT).show();
-        } else {
-            Contact newContact = new Contact(name, phone, email, address, photoBytes, notes);
-            long contactId = viewModel.addContact(newContact);
             
-            if (contactId > 0) {
-                Toast.makeText(getContext(), "Contact added successfully", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(getContext(), "Failed to add contact. Please try again.", Toast.LENGTH_SHORT).show();
-                return;
+            if (progressDialog.isShowing()) {
+                progressDialog.dismiss();
             }
+            
+            Toast.makeText(context, R.string.contact_updated, Toast.LENGTH_SHORT).show();
+            
+            // Navigate back
+            if (isAdded() && getView() != null) {
+                Navigation.findNavController(requireView()).navigateUp();
+            }
+        } else {
+            // Observe the result of adding a contact
+            final Contact newContact = new Contact(name, phone, email, address, photoBytes, notes);
+            
+            // Observe contact creation result only once
+            viewModel.getContactCreationResult().observe(getViewLifecycleOwner(), contactId -> {
+                if (progressDialog.isShowing()) {
+                    progressDialog.dismiss();
+                }
+                
+                if (contactId != null && contactId > 0) {
+                    Toast.makeText(context, R.string.contact_added, Toast.LENGTH_SHORT).show();
+                    
+                    // Navigate back only if we're still attached to the activity
+                    if (isAdded() && getView() != null) {
+                        Navigation.findNavController(requireView()).navigateUp();
+                    }
+                } else if (contactId != null) {
+                    // Failed to add contact
+                    Toast.makeText(context, "Failed to add contact. Please try again.", Toast.LENGTH_SHORT).show();
+                }
+            });
+            
+            // Start the contact creation process
+            viewModel.addContact(newContact);
         }
-
-        // Navigate back
-        Navigation.findNavController(requireView()).navigateUp();
     }
     
     private boolean isValidPhoneNumber(String phone) {

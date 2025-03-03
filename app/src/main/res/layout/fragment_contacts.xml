@@ -31,7 +31,9 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:contentDescription="Add Contact"
-        android:src="@android:drawable/ic_input_add" />
+        android:contentDescription="@string/add_contact"
+        android:src="@drawable/ic_person_add"
+        app:tint="@android:color/white"
+        app:backgroundTint="@color/design_default_color_primary" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
