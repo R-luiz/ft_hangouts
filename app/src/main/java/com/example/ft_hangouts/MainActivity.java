@@ -3,6 +3,7 @@ package com.example.ft_hangouts;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 
@@ -32,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
 
         setSupportActionBar(binding.appBarMain.toolbar);
         
-        // Start SMS notification service
+        // Re-enable SMS service with proper error handling
         startSmsService();
         
         // Set up FAB based on current destination
@@ -106,12 +107,17 @@ public class MainActivity extends AppCompatActivity {
      * Start the SMS notification service
      */
     private void startSmsService() {
-        Intent serviceIntent = new Intent(this, SmsNotificationService.class);
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
+        try {
+            Intent serviceIntent = new Intent(this, SmsNotificationService.class);
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+        } catch (Exception e) {
+            // Log the error but don't crash the app
+            Log.e("MainActivity", "Failed to start SMS service", e);
         }
     }
 }

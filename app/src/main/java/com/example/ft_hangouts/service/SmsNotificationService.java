@@ -34,17 +34,21 @@ public class SmsNotificationService extends Service {
         super.onCreate();
         Log.d(TAG, "SMS notification service created");
         
-        // Initialize the contact database helper
-        contactDbHelper = ContactDbHelper.getInstance(getApplicationContext());
-        
-        // Create the notification channel for Android O and above
-        createNotificationChannel();
-        
-        // Register a foreground service notification
-        startForeground(NOTIFICATION_ID, createServiceNotification());
-        
-        // Register the SMS receiver
-        registerSmsReceiver();
+        try {
+            // Initialize the contact database helper
+            contactDbHelper = ContactDbHelper.getInstance(getApplicationContext());
+            
+            // Create the notification channel for Android O and above
+            createNotificationChannel();
+            
+            // Register a foreground service notification
+            startForeground(NOTIFICATION_ID, createServiceNotification());
+            
+            // Register the SMS receiver
+            registerSmsReceiver();
+        } catch (Exception e) {
+            Log.e(TAG, "Error initializing SMS notification service", e);
+        }
     }
 
     @Override

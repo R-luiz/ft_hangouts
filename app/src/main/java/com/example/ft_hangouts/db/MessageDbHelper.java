@@ -42,10 +42,16 @@ public class MessageDbHelper extends SQLiteOpenHelper {
 
     // Get singleton instance
     public static synchronized MessageDbHelper getInstance(Context context) {
-        if (instance == null) {
-            instance = new MessageDbHelper(context.getApplicationContext());
+        try {
+            if (instance == null && context != null) {
+                instance = new MessageDbHelper(context.getApplicationContext());
+            }
+            return instance;
+        } catch (Exception e) {
+            // Log error but don't crash
+            android.util.Log.e("MessageDbHelper", "Error creating database helper", e);
+            return null;
         }
-        return instance;
     }
 
     private MessageDbHelper(Context context) {
@@ -115,23 +121,57 @@ public class MessageDbHelper extends SQLiteOpenHelper {
      */
     public List<Message> getLastMessagesForAllContacts() {
         List<Message> lastMessages = new ArrayList<>();
-        SQLiteDatabase db = getReadableDatabase();
-
-        // This is a complex query that gets the last message for each phone number
-        String query = "SELECT m1.* FROM " + TABLE_MESSAGES + " m1 " +
-                "INNER JOIN (SELECT " + COLUMN_PHONE_NUMBER + ", MAX(" + COLUMN_TIMESTAMP + ") as max_time " +
-                "FROM " + TABLE_MESSAGES + " GROUP BY " + COLUMN_PHONE_NUMBER + ") m2 " +
-                "ON m1." + COLUMN_PHONE_NUMBER + " = m2." + COLUMN_PHONE_NUMBER + " " +
-                "AND m1." + COLUMN_TIMESTAMP + " = m2.max_time " +
-                "ORDER BY m1." + COLUMN_TIMESTAMP + " DESC";
-
-        try (Cursor cursor = db.rawQuery(query, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                do {
-                    Message message = cursorToMessage(cursor);
-                    lastMessages.add(message);
-                } while (cursor.moveToNext());
+        
+        try {
+            SQLiteDatabase db = getReadableDatabase();
+            if (db == null) {
+                return lastMessages;
             }
+
+            // Use a simpler query first to check if the table exists
+            try {
+                Cursor checkTable = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", 
+                    new String[]{TABLE_MESSAGES});
+                boolean tableExists = checkTable != null && checkTable.moveToFirst();
+                checkTable.close();
+                
+                if (!tableExists) {
+                    // Table doesn't exist yet, create it
+                    db.execSQL(SQL_CREATE_MESSAGES_TABLE);
+                    return lastMessages; // Return empty list since table was just created
+                }
+            } catch (Exception e) {
+                // If there's an error checking the table, try creating it
+                try {
+                    db.execSQL(SQL_CREATE_MESSAGES_TABLE);
+                } catch (Exception e2) {
+                    // Ignore - table may already exist
+                }
+                return lastMessages;
+            }
+
+            // This is a complex query that gets the last message for each phone number
+            String query = "SELECT m1.* FROM " + TABLE_MESSAGES + " m1 " +
+                    "INNER JOIN (SELECT " + COLUMN_PHONE_NUMBER + ", MAX(" + COLUMN_TIMESTAMP + ") as max_time " +
+                    "FROM " + TABLE_MESSAGES + " GROUP BY " + COLUMN_PHONE_NUMBER + ") m2 " +
+                    "ON m1." + COLUMN_PHONE_NUMBER + " = m2." + COLUMN_PHONE_NUMBER + " " +
+                    "AND m1." + COLUMN_TIMESTAMP + " = m2.max_time " +
+                    "ORDER BY m1." + COLUMN_TIMESTAMP + " DESC";
+
+            try (Cursor cursor = db.rawQuery(query, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    do {
+                        Message message = cursorToMessage(cursor);
+                        if (message != null) {
+                            lastMessages.add(message);
+                        }
+                    } while (cursor.moveToNext());
+                }
+            } catch (Exception e) {
+                android.util.Log.e("MessageDbHelper", "Error executing query: " + query, e);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("MessageDbHelper", "Error in getLastMessagesForAllContacts", e);
         }
 
         return lastMessages;
@@ -180,17 +220,41 @@ public class MessageDbHelper extends SQLiteOpenHelper {
      * Convert a cursor to a Message object
      */
     private Message cursorToMessage(Cursor cursor) {
-        int idIndex = cursor.getColumnIndex(COLUMN_ID);
-        int contentIndex = cursor.getColumnIndex(COLUMN_CONTENT);
-        int phoneNumberIndex = cursor.getColumnIndex(COLUMN_PHONE_NUMBER);
-        int timestampIndex = cursor.getColumnIndex(COLUMN_TIMESTAMP);
-        int isSentIndex = cursor.getColumnIndex(COLUMN_IS_SENT);
+        try {
+            int idIndex = cursor.getColumnIndex(COLUMN_ID);
+            int contentIndex = cursor.getColumnIndex(COLUMN_CONTENT);
+            int phoneNumberIndex = cursor.getColumnIndex(COLUMN_PHONE_NUMBER);
+            int timestampIndex = cursor.getColumnIndex(COLUMN_TIMESTAMP);
+            int isSentIndex = cursor.getColumnIndex(COLUMN_IS_SENT);
+            
+            // Check if any required columns are missing
+            if (contentIndex == -1 || phoneNumberIndex == -1 || timestampIndex == -1 || isSentIndex == -1) {
+                android.util.Log.e("MessageDbHelper", "Missing columns in cursor");
+                return null;
+            }
 
-        String content = contentIndex != -1 ? cursor.getString(contentIndex) : "";
-        String phoneNumber = phoneNumberIndex != -1 ? cursor.getString(phoneNumberIndex) : "";
-        long timestamp = timestampIndex != -1 ? cursor.getLong(timestampIndex) : 0;
-        boolean isSent = isSentIndex != -1 && cursor.getInt(isSentIndex) == 1;
+            String content = cursor.getString(contentIndex);
+            String phoneNumber = cursor.getString(phoneNumberIndex);
+            long timestamp = cursor.getLong(timestampIndex);
+            boolean isSent = cursor.getInt(isSentIndex) == 1;
+            
+            // Validate data
+            if (phoneNumber == null || phoneNumber.isEmpty()) {
+                phoneNumber = "Unknown";
+            }
+            
+            if (content == null) {
+                content = "";
+            }
+            
+            if (timestamp <= 0) {
+                timestamp = System.currentTimeMillis();
+            }
 
-        return new Message(content, phoneNumber, timestamp, isSent);
+            return new Message(content, phoneNumber, timestamp, isSent);
+        } catch (Exception e) {
+            android.util.Log.e("MessageDbHelper", "Error creating Message from cursor", e);
+            return null;
+        }
     }
 }

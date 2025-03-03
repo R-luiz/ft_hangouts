@@ -32,11 +32,24 @@ public class ConversationsViewModel extends AndroidViewModel {
 
     public void loadConversations() {
         try {
+            // Get database helpers
             ContactDbHelper contactDbHelper = ContactDbHelper.getInstance(getApplication());
             MessageDbHelper messageDbHelper = MessageDbHelper.getInstance(getApplication());
             
+            // Check if database helpers are initialized
+            if (messageDbHelper == null) {
+                Log.e("ConversationsViewModel", "Message database helper is null");
+                conversations.postValue(new ArrayList<>());
+                return;
+            }
+            
             // Get the last message for each contact
-            List<Message> lastMessages = messageDbHelper.getLastMessagesForAllContacts();
+            List<Message> lastMessages = new ArrayList<>();
+            try {
+                lastMessages = messageDbHelper.getLastMessagesForAllContacts();
+            } catch (Exception e) {
+                Log.e("ConversationsViewModel", "Error getting messages", e);
+            }
             List<Conversation> conversationList = new ArrayList<>();
             
             for (Message message : lastMessages) {

@@ -86,19 +86,27 @@ public class SmsReceiver extends BroadcastReceiver {
                     false // Received message
             );
             
-            // Store in database
-            MessageDbHelper dbHelper = MessageDbHelper.getInstance(context);
-            long id = dbHelper.insertMessage(message);
-            
-            if (id > 0) {
-                Log.d(TAG, "Message saved to database with ID: " + id);
-                
-                // Broadcast to update UI if app is open
-                Intent messageIntent = new Intent(SMS_RECEIVED_ACTION);
-                messageIntent.putExtra("phone_number", sender);
-                context.sendBroadcast(messageIntent);
-            } else {
-                Log.e(TAG, "Failed to save message to database");
+            try {
+                // Store in database
+                MessageDbHelper dbHelper = MessageDbHelper.getInstance(context);
+                if (dbHelper != null) {
+                    long id = dbHelper.insertMessage(message);
+                    
+                    if (id > 0) {
+                        Log.d(TAG, "Message saved to database with ID: " + id);
+                        
+                        // Broadcast to update UI if app is open
+                        Intent messageIntent = new Intent(SMS_RECEIVED_ACTION);
+                        messageIntent.putExtra("phone_number", sender);
+                        context.sendBroadcast(messageIntent);
+                    } else {
+                        Log.e(TAG, "Failed to save message to database");
+                    }
+                } else {
+                    Log.e(TAG, "Database helper is null");
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error saving message to database", e);
             }
         }
     }
