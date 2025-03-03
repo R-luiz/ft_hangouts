@@ -3,7 +3,7 @@
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="nav_header_title">FT Hangouts</string>
-    <string name="nav_header_subtitle">Contact Management</string>
+    <string name="nav_header_subtitle">Messaging &amp; Contacts</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
 
@@ -11,6 +11,7 @@
     <string name="menu_gallery">Gallery</string>
     <string name="menu_slideshow">Slideshow</string>
     <string name="menu_contacts">Contacts</string>
+    <string name="menu_messages">Messages</string>
     
     <!-- Contact strings -->
     <string name="add_contact">Add Contact</string>
@@ -43,4 +44,10 @@
     <string name="grant_permission">Grant Permission</string>
     <string name="message_sent">Message sent</string>
     <string name="message_not_sent">Message not sent</string>
+    <string name="new_message">New Message</string>
+    <string name="no_conversations">No conversations yet</string>
+    <string name="select_contact">Select a contact to message</string>
+    <string name="today">Today</string>
+    <string name="yesterday">Yesterday</string>
+    <string name="message_contact">Message</string>
 </resources>
