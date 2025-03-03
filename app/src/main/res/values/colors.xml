@@ -7,4 +7,20 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- App specific colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="divider">#DDDDDD</color>
+    
+    <!-- Message colors -->
+    <color name="message_sent_background">#E1F5FE</color>
+    <color name="message_received_background">#F5F5F5</color>
+    <color name="message_text_sent">#000000</color>
+    <color name="message_text_received">#000000</color>
+    <color name="message_time">#757575</color>
+    
+    <!-- Permission error colors -->
+    <color name="permission_error_background">#FFCDD2</color>
+    <color name="permission_error_text">#B71C1C</color>
 </resources>

@@ -26,4 +26,21 @@
     <string name="invalid_phone">Invalid phone number format</string>
     <string name="invalid_email">Invalid email format</string>
     <string name="no_contacts">No contacts found. Add a new contact.</string>
+    
+    <!-- Form field hints -->
+    <string name="name_hint">Name</string>
+    <string name="phone_hint">Phone Number</string>
+    <string name="email_hint">Email</string>
+    <string name="address_hint">Address</string>
+    <string name="notes_hint">Notes</string>
+    <string name="change_photo">Change photo</string>
+    <string name="fill_details_new_contact">Fill in the details below to create a new contact</string>
+    
+    <!-- Message related strings -->
+    <string name="send_message_desc">Send message</string>
+    <string name="type_message_hint">Type a message</string>
+    <string name="sms_permission_required">SMS permission required to send messages</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="message_sent">Message sent</string>
+    <string name="message_not_sent">Message not sent</string>
 </resources>

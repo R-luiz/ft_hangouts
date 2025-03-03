@@ -72,21 +72,37 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
             // Set the appropriate style based on whether the message was sent or received
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) messageContainer.getLayoutParams();
             
-            if (message.isSent()) {
-                // Message sent by the user
-                params.gravity = Gravity.END;
-                messageContainer.setBackground(itemView.getContext().getDrawable(R.drawable.message_sent_background));
-                messageText.setTextColor(itemView.getContext().getColor(android.R.color.white));
-                messageTime.setTextColor(itemView.getContext().getColor(android.R.color.darker_gray));
-            } else {
-                // Message received from the contact
-                params.gravity = Gravity.START;
-                messageContainer.setBackground(itemView.getContext().getDrawable(R.drawable.message_received_background));
-                messageText.setTextColor(itemView.getContext().getColor(android.R.color.black));
-                messageTime.setTextColor(itemView.getContext().getColor(android.R.color.darker_gray));
+            try {
+                if (message.isSent()) {
+                    // Message sent by the user
+                    params.gravity = Gravity.END;
+                    
+                    if (itemView.getContext() != null) {
+                        messageContainer.setBackground(itemView.getContext().getResources()
+                            .getDrawable(R.drawable.message_sent_background, itemView.getContext().getTheme()));
+                        messageText.setTextColor(itemView.getContext().getResources()
+                            .getColor(android.R.color.white, itemView.getContext().getTheme()));
+                        messageTime.setTextColor(itemView.getContext().getResources()
+                            .getColor(android.R.color.darker_gray, itemView.getContext().getTheme()));
+                    }
+                } else {
+                    // Message received from the contact
+                    params.gravity = Gravity.START;
+                    
+                    if (itemView.getContext() != null) {
+                        messageContainer.setBackground(itemView.getContext().getResources()
+                            .getDrawable(R.drawable.message_received_background, itemView.getContext().getTheme()));
+                        messageText.setTextColor(itemView.getContext().getResources()
+                            .getColor(android.R.color.black, itemView.getContext().getTheme()));
+                        messageTime.setTextColor(itemView.getContext().getResources()
+                            .getColor(android.R.color.darker_gray, itemView.getContext().getTheme()));
+                    }
+                }
+                
+                messageContainer.setLayoutParams(params);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            
-            messageContainer.setLayoutParams(params);
         }
     }
 }

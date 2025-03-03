@@ -98,13 +98,22 @@ public class ContactDbHelper extends SQLiteOpenHelper {
     // Get all contacts from the database
     public List<Contact> getAllContacts() {
         List<Contact> contacts = new ArrayList<>();
-
-        String CONTACTS_SELECT_QUERY = "SELECT * FROM " + TABLE_CONTACTS + " ORDER BY " + KEY_CONTACT_NAME + " ASC";
         SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.rawQuery(CONTACTS_SELECT_QUERY, null);
+        Cursor cursor = null;
 
         try {
-            if (cursor.moveToFirst()) {
+            // Use query method instead of rawQuery for better safety
+            cursor = db.query(
+                TABLE_CONTACTS,  // table name
+                null,            // all columns
+                null,            // no WHERE clause
+                null,            // no WHERE arguments
+                null,            // no GROUP BY
+                null,            // no HAVING
+                KEY_CONTACT_NAME + " ASC"  // ORDER BY name ASC
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
                 do {
                     Contact contact = new Contact();
                     contact.setId(cursor.getLong(cursor.getColumnIndexOrThrow(KEY_CONTACT_ID)));
@@ -133,12 +142,14 @@ public class ContactDbHelper extends SQLiteOpenHelper {
     public Contact getContactById(long id) {
         SQLiteDatabase db = getReadableDatabase();
         Contact contact = null;
-
-        String CONTACT_SELECT_QUERY = "SELECT * FROM " + TABLE_CONTACTS + " WHERE " + KEY_CONTACT_ID + " = " + id;
-        Cursor cursor = db.rawQuery(CONTACT_SELECT_QUERY, null);
+        Cursor cursor = null;
 
         try {
-            if (cursor.moveToFirst()) {
+            // Use parameter binding to prevent SQL injection
+            String CONTACT_SELECT_QUERY = "SELECT * FROM " + TABLE_CONTACTS + " WHERE " + KEY_CONTACT_ID + " = ?";
+            cursor = db.rawQuery(CONTACT_SELECT_QUERY, new String[]{String.valueOf(id)});
+
+            if (cursor != null && cursor.moveToFirst()) {
                 contact = new Contact();
                 contact.setId(cursor.getLong(cursor.getColumnIndexOrThrow(KEY_CONTACT_ID)));
                 contact.setName(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_NAME)));

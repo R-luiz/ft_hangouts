@@ -10,6 +10,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -94,17 +95,26 @@ public class ContactsFragment extends Fragment implements ContactsAdapter.OnCont
                 return;
             }
             
+            // Null check on activity before proceeding
+            if (getActivity() == null) {
+                return;
+            }
+            
             // Navigate to message screen using the MessageFragment's static method
             Fragment fragment = MessageFragment.newInstance(contact);
             
             // Use fragment transaction instead of navigation component to avoid serialization issues
-            requireActivity().getSupportFragmentManager()
+            FragmentTransaction transaction = requireActivity().getSupportFragmentManager()
                 .beginTransaction()
                 .replace(R.id.nav_host_fragment_content_main, fragment)
-                .addToBackStack(null)
-                .commit();
+                .addToBackStack(null);
+                
+            transaction.commit();
         } catch (Exception e) {
-            Toast.makeText(requireContext(), "Error opening message screen", Toast.LENGTH_SHORT).show();
+            // Only show toast if context is available
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Error opening message screen", Toast.LENGTH_SHORT).show();
+            }
             e.printStackTrace();
         }
     }

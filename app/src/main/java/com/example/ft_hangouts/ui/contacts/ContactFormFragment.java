@@ -39,13 +39,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import de.hdodenhof.circleimageview.CircleImageView;
+import android.widget.ImageView;
 
 public class ContactFormFragment extends Fragment {
 
     private ContactsViewModel viewModel;
     private TextInputEditText editName, editPhone, editEmail, editAddress, editNotes;
-    private CircleImageView contactPhoto;
+    private ImageView contactPhoto;
     private TextView formTitle, formSubtitle;
     private byte[] photoBytes = null;
     private Contact currentContact = null;

@@ -70,15 +70,32 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.Contac
         }
 
         public void bind(final Contact contact, final int position) {
-            contactName.setText(contact.getName());
-            contactPhone.setText(contact.getPhoneNumber());
+            if (contactName != null) {
+                contactName.setText(contact.getName());
+            }
+            
+            if (contactPhone != null) {
+                contactPhone.setText(contact.getPhoneNumber());
+            }
 
             // Set contact image if available
-            if (contact.getPhoto() != null && contact.getPhoto().length > 0) {
-                contactImage.setImageBitmap(BitmapFactory.decodeByteArray(
-                        contact.getPhoto(), 0, contact.getPhoto().length));
-            } else {
-                contactImage.setImageResource(R.mipmap.ic_launcher_round);
+            if (contactImage != null) {
+                try {
+                    if (contact.getPhoto() != null && contact.getPhoto().length > 0) {
+                        Bitmap bitmap = BitmapFactory.decodeByteArray(
+                                contact.getPhoto(), 0, contact.getPhoto().length);
+                        if (bitmap != null) {
+                            contactImage.setImageBitmap(bitmap);
+                        } else {
+                            contactImage.setImageResource(R.mipmap.ic_launcher_round);
+                        }
+                    } else {
+                        contactImage.setImageResource(R.mipmap.ic_launcher_round);
+                    }
+                } catch (Exception e) {
+                    contactImage.setImageResource(R.mipmap.ic_launcher_round);
+                    e.printStackTrace();
+                }
             }
 
             // Set click listener for the whole item (edit contact)
@@ -89,16 +106,18 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.Contac
             });
             
             // Set click listener for the message button
-            messageButton.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onMessageClick(contact, position);
-                }
-            });
-            
-            // Only enable message button if a phone number exists
-            boolean hasPhoneNumber = contact.getPhoneNumber() != null && !contact.getPhoneNumber().isEmpty();
-            messageButton.setEnabled(hasPhoneNumber);
-            messageButton.setAlpha(hasPhoneNumber ? 1.0f : 0.3f);
+            if (messageButton != null) {
+                messageButton.setOnClickListener(v -> {
+                    if (listener != null) {
+                        listener.onMessageClick(contact, position);
+                    }
+                });
+                
+                // Only enable message button if a phone number exists
+                boolean hasPhoneNumber = contact.getPhoneNumber() != null && !contact.getPhoneNumber().isEmpty();
+                messageButton.setEnabled(hasPhoneNumber);
+                messageButton.setAlpha(hasPhoneNumber ? 1.0f : 0.3f);
+            }
         }
     }
 }

@@ -192,21 +192,46 @@ public class MessageFragment extends Fragment {
     public void onResume() {
         super.onResume();
         
-        // Register SMS broadcast receivers
-        requireActivity().registerReceiver(smsSentReceiver, new IntentFilter(SMS_SENT));
-        requireActivity().registerReceiver(smsDeliveredReceiver, new IntentFilter(SMS_DELIVERED));
+        // Register SMS broadcast receivers - only if activity exists
+        if (getActivity() != null) {
+            try {
+                getActivity().registerReceiver(smsSentReceiver, new IntentFilter(SMS_SENT));
+                getActivity().registerReceiver(smsDeliveredReceiver, new IntentFilter(SMS_DELIVERED));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
         
-        // Unregister SMS broadcast receivers
-        try {
-            requireActivity().unregisterReceiver(smsSentReceiver);
-            requireActivity().unregisterReceiver(smsDeliveredReceiver);
-        } catch (IllegalArgumentException e) {
-            // Receivers not registered
+        // Unregister SMS broadcast receivers - only if activity exists
+        if (getActivity() != null) {
+            try {
+                getActivity().unregisterReceiver(smsSentReceiver);
+                getActivity().unregisterReceiver(smsDeliveredReceiver);
+            } catch (IllegalArgumentException e) {
+                // Receivers not registered
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        
+        // Ensure receivers are unregistered
+        if (getActivity() != null) {
+            try {
+                getActivity().unregisterReceiver(smsSentReceiver);
+                getActivity().unregisterReceiver(smsDeliveredReceiver);
+            } catch (Exception e) {
+                // Ignore, just making sure we don't leak
+            }
         }
     }
 
@@ -226,8 +251,13 @@ public class MessageFragment extends Fragment {
             if (contactPhoto != null) {
                 if (contact.getPhoto() != null && contact.getPhoto().length > 0) {
                     try {
-                        contactPhoto.setImageBitmap(BitmapFactory.decodeByteArray(
-                                contact.getPhoto(), 0, contact.getPhoto().length));
+                        Bitmap bitmap = BitmapFactory.decodeByteArray(
+                                contact.getPhoto(), 0, contact.getPhoto().length);
+                        if (bitmap != null) {
+                            contactPhoto.setImageBitmap(bitmap);
+                        } else {
+                            contactPhoto.setImageResource(R.mipmap.ic_launcher_round);
+                        }
                     } catch (Exception e) {
                         contactPhoto.setImageResource(R.mipmap.ic_launcher_round);
                         e.printStackTrace();
@@ -240,7 +270,19 @@ public class MessageFragment extends Fragment {
             // Handle case where contact is null
             if (getActivity() != null) {
                 Toast.makeText(getActivity(), "Error: Contact not found", Toast.LENGTH_SHORT).show();
-                Navigation.findNavController(requireView()).navigateUp();
+                
+                // Only attempt navigation if fragment is attached to activity and view exists
+                if (isAdded() && getView() != null) {
+                    try {
+                        Navigation.findNavController(getView()).navigateUp();
+                    } catch (Exception e) {
+                        // If navigation fails, try to pop back stack directly
+                        if (getActivity() != null && getActivity().getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                            getActivity().getSupportFragmentManager().popBackStack();
+                        }
+                        e.printStackTrace();
+                    }
+                }
             }
         }
     }
