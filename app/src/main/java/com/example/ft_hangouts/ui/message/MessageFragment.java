@@ -17,6 +17,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,6 +27,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -36,8 +38,6 @@ import com.example.ft_hangouts.model.Message;
 
 import java.util.ArrayList;
 
-import de.hdodenhof.circleimageview.CircleImageView;
-
 public class MessageFragment extends Fragment {
 
     // Use the same key as in ContactsFragment
@@ -46,7 +46,7 @@ public class MessageFragment extends Fragment {
     private static final String SMS_DELIVERED = "SMS_DELIVERED";
 
     private Contact contact;
-    private CircleImageView contactPhoto;
+    private ImageView contactPhoto;
     private TextView contactName;
     private TextView contactPhone;
     private RecyclerView messagesRecyclerView;

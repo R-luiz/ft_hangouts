@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,8 +15,6 @@ import com.example.ft_hangouts.R;
 import com.example.ft_hangouts.model.Contact;
 
 import java.util.List;
-
-import de.hdodenhof.circleimageview.CircleImageView;
 
 public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ContactViewHolder> {
 
@@ -57,7 +56,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.Contac
     }
 
     class ContactViewHolder extends RecyclerView.ViewHolder {
-        private CircleImageView contactImage;
+        private ImageView contactImage;
         private TextView contactName;
         private TextView contactPhone;
         private ImageButton messageButton;
