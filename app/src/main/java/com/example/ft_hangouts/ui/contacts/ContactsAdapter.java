@@ -1,5 +1,6 @@
 package com.example.ft_hangouts.ui.contacts;
 
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
