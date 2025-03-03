@@ -15,6 +15,8 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.ft_hangouts.ui.message.MessageFragment;
+
 import com.example.ft_hangouts.R;
 import com.example.ft_hangouts.model.Contact;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -85,16 +87,25 @@ public class ContactsFragment extends Fragment implements ContactsAdapter.OnCont
     
     @Override
     public void onMessageClick(Contact contact, int position) {
-        // Check if contact has a phone number
-        if (contact.getPhoneNumber() == null || contact.getPhoneNumber().isEmpty()) {
-            Toast.makeText(requireContext(), "Contact has no phone number", Toast.LENGTH_SHORT).show();
-            return;
+        try {
+            // Check if contact has a phone number
+            if (contact == null || contact.getPhoneNumber() == null || contact.getPhoneNumber().isEmpty()) {
+                Toast.makeText(requireContext(), "Contact has no phone number", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            // Navigate to message screen using the MessageFragment's static method
+            Fragment fragment = MessageFragment.newInstance(contact);
+            
+            // Use fragment transaction instead of navigation component to avoid serialization issues
+            requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.nav_host_fragment_content_main, fragment)
+                .addToBackStack(null)
+                .commit();
+        } catch (Exception e) {
+            Toast.makeText(requireContext(), "Error opening message screen", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
         }
-        
-        // Navigate to message screen
-        NavController navController = Navigation.findNavController(requireView());
-        Bundle args = new Bundle();
-        args.putSerializable("contact", contact);
-        navController.navigate(R.id.action_nav_contacts_to_messageFragment, args);
     }
 }

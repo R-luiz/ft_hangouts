@@ -40,6 +40,7 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class MessageFragment extends Fragment {
 
+    // Use the same key as in ContactsFragment
     private static final String ARG_CONTACT = "contact";
     private static final String SMS_SENT = "SMS_SENT";
     private static final String SMS_DELIVERED = "SMS_DELIVERED";
@@ -59,6 +60,7 @@ public class MessageFragment extends Fragment {
     private BroadcastReceiver smsSentReceiver;
     private BroadcastReceiver smsDeliveredReceiver;
 
+    // Static newInstance method, but we'll also handle direct instantiation
     public static MessageFragment newInstance(Contact contact) {
         MessageFragment fragment = new MessageFragment();
         Bundle args = new Bundle();
@@ -71,7 +73,12 @@ public class MessageFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            contact = (Contact) getArguments().getSerializable(ARG_CONTACT);
+            // Try both keys to be safe
+            if (getArguments().containsKey(ARG_CONTACT)) {
+                contact = (Contact) getArguments().getSerializable(ARG_CONTACT);
+            } else if (getArguments().containsKey("contact")) {
+                contact = (Contact) getArguments().getSerializable("contact");
+            }
         }
         
         // Initialize permission launcher
@@ -136,35 +143,49 @@ public class MessageFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Initialize views
-        contactPhoto = view.findViewById(R.id.contact_photo);
-        contactName = view.findViewById(R.id.contact_name);
-        contactPhone = view.findViewById(R.id.contact_phone);
-        messagesRecyclerView = view.findViewById(R.id.messages_recycler_view);
-        messageInput = view.findViewById(R.id.message_input);
-        sendButton = view.findViewById(R.id.send_button);
-        permissionMessage = view.findViewById(R.id.permission_message);
-        requestPermissionButton = view.findViewById(R.id.request_permission_button);
-
-        // Setup contact info
-        setupContactInfo();
-
-        // Setup RecyclerView
-        messageAdapter = new MessageAdapter();
-        messagesRecyclerView.setAdapter(messageAdapter);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
-        layoutManager.setStackFromEnd(true); // Scroll to bottom for new messages
-        messagesRecyclerView.setLayoutManager(layoutManager);
-
-        // Check SMS permission and setup UI accordingly
-        if (checkSmsPermission()) {
-            setupMessagingUI();
-        } else {
-            showPermissionRequiredMessage();
+        try {
+            // Initialize views
+            contactPhoto = view.findViewById(R.id.contact_photo);
+            contactName = view.findViewById(R.id.contact_name);
+            contactPhone = view.findViewById(R.id.contact_phone);
+            messagesRecyclerView = view.findViewById(R.id.messages_recycler_view);
+            messageInput = view.findViewById(R.id.message_input);
+            sendButton = view.findViewById(R.id.send_button);
+            permissionMessage = view.findViewById(R.id.permission_message);
+            requestPermissionButton = view.findViewById(R.id.request_permission_button);
+    
+            // Check if we have a valid contact
+            if (contact == null) {
+                Toast.makeText(requireContext(), "Error: No contact information available", Toast.LENGTH_SHORT).show();
+                if (getActivity() != null && getActivity().getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                    getActivity().getSupportFragmentManager().popBackStack();
+                    return;
+                }
+            }
+    
+            // Setup contact info
+            setupContactInfo();
+    
+            // Setup RecyclerView
+            messageAdapter = new MessageAdapter();
+            messagesRecyclerView.setAdapter(messageAdapter);
+            LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
+            layoutManager.setStackFromEnd(true); // Scroll to bottom for new messages
+            messagesRecyclerView.setLayoutManager(layoutManager);
+    
+            // Check SMS permission and setup UI accordingly
+            if (checkSmsPermission()) {
+                setupMessagingUI();
+            } else {
+                showPermissionRequiredMessage();
+            }
+            
+            // Add fake messages for demo (remove in production)
+            addDemoMessages();
+        } catch (Exception e) {
+            Toast.makeText(requireContext(), "Error initializing message screen", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
         }
-        
-        // Add fake messages for demo (remove in production)
-        addDemoMessages();
     }
 
     @Override
@@ -191,14 +212,35 @@ public class MessageFragment extends Fragment {
 
     private void setupContactInfo() {
         if (contact != null) {
-            contactName.setText(contact.getName());
-            contactPhone.setText(contact.getPhoneNumber());
+            // Set contact name
+            if (contactName != null) {
+                contactName.setText(contact.getName());
+            }
             
-            if (contact.getPhoto() != null && contact.getPhoto().length > 0) {
-                contactPhoto.setImageBitmap(BitmapFactory.decodeByteArray(
-                        contact.getPhoto(), 0, contact.getPhoto().length));
-            } else {
-                contactPhoto.setImageResource(R.mipmap.ic_launcher_round);
+            // Set contact phone number
+            if (contactPhone != null) {
+                contactPhone.setText(contact.getPhoneNumber());
+            }
+            
+            // Set contact photo
+            if (contactPhoto != null) {
+                if (contact.getPhoto() != null && contact.getPhoto().length > 0) {
+                    try {
+                        contactPhoto.setImageBitmap(BitmapFactory.decodeByteArray(
+                                contact.getPhoto(), 0, contact.getPhoto().length));
+                    } catch (Exception e) {
+                        contactPhoto.setImageResource(R.mipmap.ic_launcher_round);
+                        e.printStackTrace();
+                    }
+                } else {
+                    contactPhoto.setImageResource(R.mipmap.ic_launcher_round);
+                }
+            }
+        } else {
+            // Handle case where contact is null
+            if (getActivity() != null) {
+                Toast.makeText(getActivity(), "Error: Contact not found", Toast.LENGTH_SHORT).show();
+                Navigation.findNavController(requireView()).navigateUp();
             }
         }
     }
@@ -228,6 +270,15 @@ public class MessageFragment extends Fragment {
     }
 
     private void sendSmsMessage() {
+        if (contact == null) {
+            Toast.makeText(requireContext(), "Error: Contact not found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        if (messageInput == null) {
+            return;
+        }
+        
         String message = messageInput.getText().toString().trim();
         String phoneNumber = contact.getPhoneNumber();
         
@@ -286,20 +337,27 @@ public class MessageFragment extends Fragment {
     
     // Add some demo messages for UI testing (remove in production)
     private void addDemoMessages() {
-        if (contact != null) {
+        if (contact != null && messageAdapter != null && messagesRecyclerView != null) {
             String phone = contact.getPhoneNumber();
+            if (phone == null || phone.isEmpty()) {
+                phone = "Unknown";
+            }
             
             // Simulate a conversation
             long now = System.currentTimeMillis();
             
-            messageAdapter.addMessage(new Message("Hello! How are you?", phone, now - 3600000, false));
-            messageAdapter.addMessage(new Message("I'm doing well, thanks for asking!", phone, now - 3500000, true));
-            messageAdapter.addMessage(new Message("Do you want to meet up later?", phone, now - 3400000, false));
-            messageAdapter.addMessage(new Message("Sure, what time works for you?", phone, now - 3300000, true));
-            messageAdapter.addMessage(new Message("How about 6pm at the usual place?", phone, now - 3200000, false));
-            
-            // Scroll to the bottom
-            messagesRecyclerView.scrollToPosition(messageAdapter.getItemCount() - 1);
+            try {
+                messageAdapter.addMessage(new Message("Hello! How are you?", phone, now - 3600000, false));
+                messageAdapter.addMessage(new Message("I'm doing well, thanks for asking!", phone, now - 3500000, true));
+                messageAdapter.addMessage(new Message("Do you want to meet up later?", phone, now - 3400000, false));
+                messageAdapter.addMessage(new Message("Sure, what time works for you?", phone, now - 3300000, true));
+                messageAdapter.addMessage(new Message("How about 6pm at the usual place?", phone, now - 3200000, false));
+                
+                // Scroll to the bottom
+                messagesRecyclerView.scrollToPosition(messageAdapter.getItemCount() - 1);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }
