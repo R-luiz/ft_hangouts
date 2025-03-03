@@ -17,6 +17,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -43,6 +44,7 @@ public class ContactFormFragment extends Fragment {
     private ContactsViewModel viewModel;
     private TextInputEditText editName, editPhone, editEmail, editAddress, editNotes;
     private CircleImageView contactPhoto;
+    private TextView formTitle, formSubtitle;
     private byte[] photoBytes = null;
     private Contact currentContact = null;
     private boolean isEditMode = false;
@@ -105,6 +107,8 @@ public class ContactFormFragment extends Fragment {
         editAddress = view.findViewById(R.id.edit_address);
         editNotes = view.findViewById(R.id.edit_notes);
         contactPhoto = view.findViewById(R.id.contact_photo);
+        formTitle = view.findViewById(R.id.form_title);
+        formSubtitle = view.findViewById(R.id.form_subtitle);
         ImageButton btnChangePhoto = view.findViewById(R.id.btn_change_photo);
         Button btnSave = view.findViewById(R.id.btn_save);
 
@@ -112,6 +116,12 @@ public class ContactFormFragment extends Fragment {
         if (getArguments() != null && getArguments().containsKey("contact")) {
             currentContact = (Contact) getArguments().getSerializable("contact");
             isEditMode = true;
+            
+            // Update UI for edit mode
+            formTitle.setText(R.string.edit_contact);
+            formSubtitle.setText("Update the contact information below");
+            btnSave.setText(R.string.update_contact);
+            
             populateFormFields();
         }
 
@@ -180,8 +190,26 @@ public class ContactFormFragment extends Fragment {
         String notes = editNotes.getText().toString().trim();
 
         // Validate input
+        boolean hasError = false;
+        
         if (name.isEmpty()) {
             editName.setError("Name is required");
+            hasError = true;
+        }
+        
+        // Basic phone number validation
+        if (!phone.isEmpty() && !isValidPhoneNumber(phone)) {
+            editPhone.setError("Invalid phone number format");
+            hasError = true;
+        }
+        
+        // Basic email validation
+        if (!email.isEmpty() && !isValidEmail(email)) {
+            editEmail.setError("Invalid email format");
+            hasError = true;
+        }
+        
+        if (hasError) {
             return;
         }
 
@@ -198,22 +226,47 @@ public class ContactFormFragment extends Fragment {
             }
             
             viewModel.updateContact(currentContact);
-            Toast.makeText(getContext(), "Contact updated", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Contact updated successfully", Toast.LENGTH_SHORT).show();
         } else {
             Contact newContact = new Contact(name, phone, email, address, photoBytes, notes);
-            viewModel.addContact(newContact);
-            Toast.makeText(getContext(), "Contact added", Toast.LENGTH_SHORT).show();
+            long contactId = viewModel.addContact(newContact);
+            
+            if (contactId > 0) {
+                Toast.makeText(getContext(), "Contact added successfully", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getContext(), "Failed to add contact. Please try again.", Toast.LENGTH_SHORT).show();
+                return;
+            }
         }
 
         // Navigate back
         Navigation.findNavController(requireView()).navigateUp();
     }
+    
+    private boolean isValidPhoneNumber(String phone) {
+        // Simple validation: at least 7 digits, can contain spaces, dashes, and parentheses
+        return phone.replaceAll("[\\s\\-\\(\\)]", "").matches("\\d{7,}");
+    }
+    
+    private boolean isValidEmail(String email) {
+        // Simple email validation
+        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
 
     private void deleteContact() {
         if (isEditMode && currentContact != null) {
-            viewModel.deleteContact(currentContact.getId());
-            Toast.makeText(getContext(), "Contact deleted", Toast.LENGTH_SHORT).show();
-            Navigation.findNavController(requireView()).navigateUp();
+            // Show confirmation dialog
+            new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Delete Contact")
+                .setMessage("Are you sure you want to delete " + currentContact.getName() + "?")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    viewModel.deleteContact(currentContact.getId());
+                    Toast.makeText(getContext(), "Contact deleted", Toast.LENGTH_SHORT).show();
+                    Navigation.findNavController(requireView()).navigateUp();
+                })
+                .setNegativeButton("Cancel", null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
         }
     }
 }

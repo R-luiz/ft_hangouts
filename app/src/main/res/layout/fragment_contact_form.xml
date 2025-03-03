@@ -5,12 +5,32 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
+    android:background="@android:color/white"
     tools:context=".ui.contacts.ContactFormFragment">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
+        
+        <TextView
+            android:id="@+id/form_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/add_contact"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/design_default_color_primary"
+            android:layout_marginBottom="8dp" />
+            
+        <TextView
+            android:id="@+id/form_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Fill in the details below to create a new contact"
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginBottom="16dp" />
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -109,7 +129,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="Save Contact" />
+            android:layout_marginBottom="24dp"
+            android:background="@color/design_default_color_primary"
+            android:textColor="@android:color/white"
+            android:paddingVertical="12dp"
+            android:text="@string/save_contact" />
 
     </LinearLayout>
 </ScrollView>

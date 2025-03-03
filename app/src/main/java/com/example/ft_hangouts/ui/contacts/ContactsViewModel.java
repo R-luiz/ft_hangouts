@@ -44,14 +44,29 @@ public class ContactsViewModel extends AndroidViewModel {
         });
     }
 
-    public void addContact(Contact contact) {
-        executorService.execute(() -> {
-            long contactId = dbHelper.addContact(contact);
-            if (contactId > 0) {
-                contact.setId(contactId);
-                loadContacts();
-            }
-        });
+    public long addContact(Contact contact) {
+        final long[] contactId = {-1};
+        
+        try {
+            // Using a CountDownLatch to make this synchronous
+            java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+            
+            executorService.execute(() -> {
+                contactId[0] = dbHelper.addContact(contact);
+                if (contactId[0] > 0) {
+                    contact.setId(contactId[0]);
+                    loadContacts();
+                }
+                latch.countDown();
+            });
+            
+            // Wait for the database operation to complete
+            latch.await(2, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
+        return contactId[0];
     }
 
     public void updateContact(Contact contact) {

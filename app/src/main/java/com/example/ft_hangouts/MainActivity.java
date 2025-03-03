@@ -32,9 +32,15 @@ public class MainActivity extends AppCompatActivity {
         binding.appBarMain.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null)
-                        .setAnchorView(R.id.fab).show();
+                // Navigate to the contact form to add a new contact
+                NavController navController = Navigation.findNavController(MainActivity.this, R.id.nav_host_fragment_content_main);
+                if (navController.getCurrentDestination().getId() == R.id.nav_contacts) {
+                    navController.navigate(R.id.action_nav_contacts_to_contactFormFragment);
+                } else {
+                    // First navigate to contacts, then to form
+                    navController.navigate(R.id.nav_contacts);
+                    navController.navigate(R.id.action_nav_contacts_to_contactFormFragment);
+                }
             }
         });
         DrawerLayout drawer = binding.drawerLayout;
