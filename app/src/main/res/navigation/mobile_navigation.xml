@@ -32,6 +32,17 @@
     </fragment>
     
     <fragment
+        android:id="@+id/nav_gallery"
+        android:name="com.example.ft_hangouts.ui.gallery.GalleryFragment"
+        android:label="Gallery"
+        tools:layout="@layout/fragment_gallery">
+        <!-- Added action to allow navigation from gallery to message -->
+        <action
+            android:id="@+id/action_nav_gallery_to_messageFragment"
+            app:destination="@id/messageFragment" />
+    </fragment>
+    
+    <fragment
         android:id="@+id/contactFormFragment"
         android:name="com.example.ft_hangouts.ui.contacts.ContactFormFragment"
         android:label="Add/Edit Contact"

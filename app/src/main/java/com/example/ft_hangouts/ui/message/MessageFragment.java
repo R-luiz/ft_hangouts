@@ -199,10 +199,17 @@ public class MessageFragment extends Fragment {
             // Check if we have a valid contact
             if (contact == null) {
                 Toast.makeText(requireContext(), "Error: No contact information available", Toast.LENGTH_SHORT).show();
+                // Navigate back if we don't have a valid contact
                 if (getActivity() != null && getActivity().getSupportFragmentManager().getBackStackEntryCount() > 0) {
                     getActivity().getSupportFragmentManager().popBackStack();
-                    return;
+                } else if (getView() != null) {
+                    try {
+                        Navigation.findNavController(getView()).navigateUp();
+                    } catch (Exception e) {
+                        Log.e("MessageFragment", "Error navigating back", e);
+                    }
                 }
+                return; // Important: Return early to prevent further execution
             }
     
             // Setup contact info
@@ -234,6 +241,11 @@ public class MessageFragment extends Fragment {
     public void onResume() {
         super.onResume();
         
+        // Skip further processing if contact is null
+        if (contact == null) {
+            return;
+        }
+        
         // Register SMS broadcast receivers - only if activity exists
         if (getActivity() != null) {
             try {
@@ -242,7 +254,7 @@ public class MessageFragment extends Fragment {
                 getActivity().registerReceiver(smsReceivedReceiver, new IntentFilter(SmsReceiver.SMS_RECEIVED_ACTION));
                 
                 // Mark messages as read when viewing conversation
-                if (contact != null) {
+                if (messageDbHelper != null) {
                     messageDbHelper.markMessagesAsRead(contact.getPhoneNumber());
                 }
                 
@@ -250,7 +262,7 @@ public class MessageFragment extends Fragment {
                 loadMessagesFromDatabase();
                 
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e("MessageFragment", "Error in onResume", e);
             }
         }
     }
@@ -357,6 +369,8 @@ public class MessageFragment extends Fragment {
     }
 
     private void setupContactInfo() {
+        // This should never be called with a null contact after our checks in onViewCreated,
+        // but let's keep the null check just to be safe
         if (contact != null) {
             // Set contact name
             if (contactName != null) {
@@ -381,28 +395,10 @@ public class MessageFragment extends Fragment {
                         }
                     } catch (Exception e) {
                         contactPhoto.setImageResource(R.mipmap.ic_launcher_round);
-                        e.printStackTrace();
+                        Log.e("MessageFragment", "Error decoding contact photo", e);
                     }
                 } else {
                     contactPhoto.setImageResource(R.mipmap.ic_launcher_round);
-                }
-            }
-        } else {
-            // Handle case where contact is null
-            if (getActivity() != null) {
-                Toast.makeText(getActivity(), "Error: Contact not found", Toast.LENGTH_SHORT).show();
-                
-                // Only attempt navigation if fragment is attached to activity and view exists
-                if (isAdded() && getView() != null) {
-                    try {
-                        Navigation.findNavController(getView()).navigateUp();
-                    } catch (Exception e) {
-                        // If navigation fails, try to pop back stack directly
-                        if (getActivity() != null && getActivity().getSupportFragmentManager().getBackStackEntryCount() > 0) {
-                            getActivity().getSupportFragmentManager().popBackStack();
-                        }
-                        e.printStackTrace();
-                    }
                 }
             }
         }
