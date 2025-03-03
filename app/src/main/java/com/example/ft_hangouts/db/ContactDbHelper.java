@@ -166,13 +166,34 @@ public class ContactDbHelper extends SQLiteOpenHelper {
 
         db.beginTransaction();
         try {
+            // First verify the contact exists
+            Cursor cursor = db.query(TABLE_CONTACTS, 
+                    new String[]{KEY_CONTACT_ID}, 
+                    KEY_CONTACT_ID + " = ?",
+                    new String[]{String.valueOf(contact.getId())}, 
+                    null, null, null);
+            
+            boolean contactExists = cursor != null && cursor.moveToFirst();
+            
+            if (cursor != null) {
+                cursor.close();
+            }
+            
+            if (!contactExists) {
+                return 0; // Contact doesn't exist
+            }
+            
             ContentValues values = new ContentValues();
             values.put(KEY_CONTACT_NAME, contact.getName());
             values.put(KEY_CONTACT_PHONE, contact.getPhoneNumber());
             values.put(KEY_CONTACT_EMAIL, contact.getEmail());
             values.put(KEY_CONTACT_ADDRESS, contact.getAddress());
-            values.put(KEY_CONTACT_PHOTO, contact.getPhoto());
             values.put(KEY_CONTACT_NOTES, contact.getNotes());
+            
+            // Only update photo if it's not null
+            if (contact.getPhoto() != null) {
+                values.put(KEY_CONTACT_PHOTO, contact.getPhoto());
+            }
 
             rowsAffected = db.update(TABLE_CONTACTS, values, KEY_CONTACT_ID + " = ?", 
                     new String[]{String.valueOf(contact.getId())});

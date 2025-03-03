@@ -46,21 +46,39 @@ public class ContactsViewModel extends AndroidViewModel {
 
     // LiveData to track the success of contact operations
     private final MutableLiveData<Long> contactCreationResult = new MutableLiveData<>();
+    private final MutableLiveData<Integer> contactUpdateResult = new MutableLiveData<>();
     
     public LiveData<Long> getContactCreationResult() {
         return contactCreationResult;
+    }
+    
+    public LiveData<Integer> getContactUpdateResult() {
+        return contactUpdateResult;
     }
 
     public void addContact(Contact contact) {
         loading.setValue(true);
         executorService.execute(() -> {
             try {
+                // Reset the previous result
+                contactCreationResult.postValue(null);
+                
                 long contactId = dbHelper.addContact(contact);
                 if (contactId > 0) {
                     contact.setId(contactId);
                     loadContacts();
+                    
+                    // Wait for the database operation to complete
+                    try {
+                        Thread.sleep(300); // Give time for the database to update
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    
+                    contactCreationResult.postValue(contactId);
+                } else {
+                    contactCreationResult.postValue(-1L);
                 }
-                contactCreationResult.postValue(contactId);
             } catch (Exception e) {
                 e.printStackTrace();
                 contactCreationResult.postValue(-1L);
@@ -71,10 +89,32 @@ public class ContactsViewModel extends AndroidViewModel {
     }
 
     public void updateContact(Contact contact) {
+        loading.setValue(true);
         executorService.execute(() -> {
-            int result = dbHelper.updateContact(contact);
-            if (result > 0) {
-                loadContacts();
+            try {
+                // Reset previous result
+                contactUpdateResult.postValue(null);
+                
+                int result = dbHelper.updateContact(contact);
+                if (result > 0) {
+                    loadContacts();
+                    
+                    // Wait for the database operation to complete
+                    try {
+                        Thread.sleep(300); // Give time for the database to update
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    
+                    contactUpdateResult.postValue(result);
+                } else {
+                    contactUpdateResult.postValue(0);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                contactUpdateResult.postValue(-1);
+            } finally {
+                loading.postValue(false);
             }
         });
     }

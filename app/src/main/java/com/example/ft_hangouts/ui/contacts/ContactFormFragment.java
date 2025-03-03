@@ -266,6 +266,7 @@ public class ContactFormFragment extends Fragment {
         
         // Create or update contact
         if (isEditMode && currentContact != null) {
+            // Update existing contact
             currentContact.setName(name);
             currentContact.setPhoneNumber(phone);
             currentContact.setEmail(email);
@@ -276,39 +277,75 @@ public class ContactFormFragment extends Fragment {
                 currentContact.setPhoto(photoBytes);
             }
             
+            // Remove any existing observers to prevent multiple events
+            viewModel.getContactUpdateResult().removeObservers(getViewLifecycleOwner());
+            
+            // Observe update result
+            viewModel.getContactUpdateResult().observe(getViewLifecycleOwner(), result -> {
+                if (progressDialog.isShowing()) {
+                    try {
+                        progressDialog.dismiss();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                
+                if (result != null && result > 0) {
+                    // Success - update worked
+                    Toast.makeText(context, R.string.contact_updated, Toast.LENGTH_SHORT).show();
+                    
+                    // Navigate back only if we're still attached to the activity
+                    if (isAdded() && getView() != null) {
+                        try {
+                            Navigation.findNavController(requireView()).navigateUp();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } else if (result != null) {
+                    // Update failed
+                    Toast.makeText(context, "Failed to update contact. Please try again.", Toast.LENGTH_SHORT).show();
+                }
+                // Null result means the operation is still in progress
+            });
+            
+            // Start the update process
             viewModel.updateContact(currentContact);
             
-            if (progressDialog.isShowing()) {
-                progressDialog.dismiss();
-            }
-            
-            Toast.makeText(context, R.string.contact_updated, Toast.LENGTH_SHORT).show();
-            
-            // Navigate back
-            if (isAdded() && getView() != null) {
-                Navigation.findNavController(requireView()).navigateUp();
-            }
         } else {
-            // Observe the result of adding a contact
+            // Create new contact
             final Contact newContact = new Contact(name, phone, email, address, photoBytes, notes);
             
-            // Observe contact creation result only once
+            // Remove any existing observers to prevent duplicate events
+            viewModel.getContactCreationResult().removeObservers(getViewLifecycleOwner());
+            
+            // Observe contact creation result
             viewModel.getContactCreationResult().observe(getViewLifecycleOwner(), contactId -> {
                 if (progressDialog.isShowing()) {
-                    progressDialog.dismiss();
+                    try {
+                        progressDialog.dismiss();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
                 
                 if (contactId != null && contactId > 0) {
+                    // Success - contact was created
                     Toast.makeText(context, R.string.contact_added, Toast.LENGTH_SHORT).show();
                     
                     // Navigate back only if we're still attached to the activity
                     if (isAdded() && getView() != null) {
-                        Navigation.findNavController(requireView()).navigateUp();
+                        try {
+                            Navigation.findNavController(requireView()).navigateUp();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
-                } else if (contactId != null) {
+                } else if (contactId != null && contactId <= 0) {
                     // Failed to add contact
                     Toast.makeText(context, "Failed to add contact. Please try again.", Toast.LENGTH_SHORT).show();
                 }
+                // Null result means the operation is still in progress
             });
             
             // Start the contact creation process
