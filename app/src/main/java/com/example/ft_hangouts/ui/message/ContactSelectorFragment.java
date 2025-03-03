@@ -76,14 +76,10 @@ public class ContactSelectorFragment extends Fragment implements ContactsAdapter
                 return;
             }
             
-            Fragment fragment = MessageFragment.newInstance(contact);
-            
-            FragmentTransaction transaction = getParentFragmentManager()
-                .beginTransaction()
-                .replace(R.id.nav_host_fragment_content_main, fragment)
-                .addToBackStack(null);
-                
-            transaction.commit();
+            NavController navController = Navigation.findNavController(requireView());
+            Bundle args = new Bundle();
+            args.putSerializable("contact", contact);
+            navController.navigate(R.id.action_contactSelectorFragment_to_messageFragment, args);
         } catch (Exception e) {
             Toast.makeText(requireContext(), "Error opening message screen", Toast.LENGTH_SHORT).show();
             e.printStackTrace();

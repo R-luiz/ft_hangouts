@@ -66,9 +66,9 @@ public class MainActivity extends AppCompatActivity {
         // Update FAB icon based on current destination
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
             if (destination.getId() == R.id.nav_contacts) {
-                binding.appBarMain.fab.setImageResource(android.R.drawable.ic_input_add);
+                binding.appBarMain.fab.setImageResource(R.drawable.ic_person_add);
             } else if (destination.getId() == R.id.nav_messages) {
-                binding.appBarMain.fab.setImageResource(android.R.drawable.ic_menu_edit);
+                binding.appBarMain.fab.setImageResource(R.drawable.ic_new_message);
             }
             
             // Hide FAB on detail pages

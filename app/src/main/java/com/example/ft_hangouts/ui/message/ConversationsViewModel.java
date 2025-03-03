@@ -32,7 +32,7 @@ public class ConversationsViewModel extends AndroidViewModel {
         // For demonstration purposes, we'll create mock conversations based on contacts
         
         try {
-            ContactDbHelper dbHelper = new ContactDbHelper(getApplication());
+            ContactDbHelper dbHelper = ContactDbHelper.getInstance(getApplication());
             List<Contact> contacts = dbHelper.getAllContacts();
             
             List<Conversation> conversationList = new ArrayList<>();

@@ -65,17 +65,9 @@ public class ConversationsFragment extends Fragment implements ConversationsAdap
         // FAB click to create new message
         fabNewMessage.setOnClickListener(v -> {
             try {
-                // Navigate to contact selector
-                if (getActivity() != null) {
-                    Fragment fragment = new ContactSelectorFragment();
-                    
-                    FragmentTransaction transaction = getParentFragmentManager()
-                        .beginTransaction()
-                        .replace(R.id.nav_host_fragment_content_main, fragment)
-                        .addToBackStack(null);
-                        
-                    transaction.commit();
-                }
+                // Use navigation component to navigate to contact selector
+                NavController navController = Navigation.findNavController(view);
+                navController.navigate(R.id.action_nav_messages_to_contactSelectorFragment);
             } catch (Exception e) {
                 Toast.makeText(requireContext(), "Could not open contact selector", Toast.LENGTH_SHORT).show();
                 e.printStackTrace();
@@ -92,15 +84,11 @@ public class ConversationsFragment extends Fragment implements ConversationsAdap
     @Override
     public void onConversationClick(Conversation conversation, int position) {
         try {
-            // Navigate to message fragment
-            Fragment fragment = MessageFragment.newInstance(conversation.getContact());
-            
-            FragmentTransaction transaction = getParentFragmentManager()
-                .beginTransaction()
-                .replace(R.id.nav_host_fragment_content_main, fragment)
-                .addToBackStack(null);
-                
-            transaction.commit();
+            // Navigate to message fragment using Navigation component
+            NavController navController = Navigation.findNavController(requireView());
+            Bundle args = new Bundle();
+            args.putSerializable("contact", conversation.getContact());
+            navController.navigate(R.id.action_nav_messages_to_messageFragment, args);
         } catch (Exception e) {
             Toast.makeText(requireContext(), "Error opening conversation", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
