@@ -34,10 +34,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.ft_hangouts.R;
 import com.example.ft_hangouts.db.ContactDbHelper;
+import com.example.ft_hangouts.db.MessageDbHelper;
 import com.example.ft_hangouts.model.Contact;
 import com.example.ft_hangouts.model.Message;
+import com.example.ft_hangouts.receivers.SmsReceiver;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class MessageFragment extends Fragment {
 
@@ -60,6 +63,8 @@ public class MessageFragment extends Fragment {
     private ActivityResultLauncher<String> requestPermissionLauncher;
     private BroadcastReceiver smsSentReceiver;
     private BroadcastReceiver smsDeliveredReceiver;
+    private BroadcastReceiver smsReceivedReceiver;
+    private MessageDbHelper messageDbHelper;
 
     // Static newInstance method, but we'll also handle direct instantiation
     public static MessageFragment newInstance(Contact contact) {
@@ -81,6 +86,9 @@ public class MessageFragment extends Fragment {
                 contact = (Contact) getArguments().getSerializable("contact");
             }
         }
+        
+        // Initialize database helper
+        messageDbHelper = MessageDbHelper.getInstance(requireContext());
         
         // Initialize permission launcher
         requestPermissionLauncher = registerForActivityResult(
@@ -129,6 +137,24 @@ public class MessageFragment extends Fragment {
                     case Activity.RESULT_CANCELED:
                         Toast.makeText(context, "SMS not delivered", Toast.LENGTH_SHORT).show();
                         break;
+                }
+            }
+        };
+        
+        // Initialize SMS received broadcast receiver
+        smsReceivedReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.getAction() != null && 
+                        intent.getAction().equals(SmsReceiver.SMS_RECEIVED_ACTION)) {
+                    
+                    String phoneNumber = intent.getStringExtra("phone_number");
+                    
+                    // If we're currently viewing this contact's messages, refresh the view
+                    if (contact != null && phoneNumber != null && 
+                            phoneNumber.equals(contact.getPhoneNumber())) {
+                        loadMessagesFromDatabase();
+                    }
                 }
             }
         };
@@ -181,8 +207,8 @@ public class MessageFragment extends Fragment {
                 showPermissionRequiredMessage();
             }
             
-            // Add fake messages for demo (remove in production)
-            addDemoMessages();
+            // Load messages from database
+            loadMessagesFromDatabase();
         } catch (Exception e) {
             Toast.makeText(requireContext(), "Error initializing message screen", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
@@ -198,6 +224,16 @@ public class MessageFragment extends Fragment {
             try {
                 getActivity().registerReceiver(smsSentReceiver, new IntentFilter(SMS_SENT));
                 getActivity().registerReceiver(smsDeliveredReceiver, new IntentFilter(SMS_DELIVERED));
+                getActivity().registerReceiver(smsReceivedReceiver, new IntentFilter(SmsReceiver.SMS_RECEIVED_ACTION));
+                
+                // Mark messages as read when viewing conversation
+                if (contact != null) {
+                    messageDbHelper.markMessagesAsRead(contact.getPhoneNumber());
+                }
+                
+                // Load messages from database
+                loadMessagesFromDatabase();
+                
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -213,6 +249,7 @@ public class MessageFragment extends Fragment {
             try {
                 getActivity().unregisterReceiver(smsSentReceiver);
                 getActivity().unregisterReceiver(smsDeliveredReceiver);
+                getActivity().unregisterReceiver(smsReceivedReceiver);
             } catch (IllegalArgumentException e) {
                 // Receivers not registered
             } catch (Exception e) {
@@ -230,8 +267,29 @@ public class MessageFragment extends Fragment {
             try {
                 getActivity().unregisterReceiver(smsSentReceiver);
                 getActivity().unregisterReceiver(smsDeliveredReceiver);
+                getActivity().unregisterReceiver(smsReceivedReceiver);
             } catch (Exception e) {
                 // Ignore, just making sure we don't leak
+            }
+        }
+    }
+    
+    /**
+     * Load messages from database and update UI
+     */
+    private void loadMessagesFromDatabase() {
+        if (contact != null && messageAdapter != null) {
+            try {
+                List<Message> messages = messageDbHelper.getMessagesForContact(contact.getPhoneNumber());
+                messageAdapter.setMessages(messages);
+                
+                // Scroll to bottom if there are messages
+                if (messages.size() > 0 && messagesRecyclerView != null) {
+                    messagesRecyclerView.scrollToPosition(messages.size() - 1);
+                }
+            } catch (Exception e) {
+                Toast.makeText(requireContext(), "Error loading messages", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
             }
         }
     }
@@ -361,9 +419,19 @@ public class MessageFragment extends Fragment {
                 smsManager.sendTextMessage(phoneNumber, null, message, sentPI, deliveredPI);
             }
             
-            // Add the message to the UI
+            // Create a Message object
             Message sentMessage = new Message(message, phoneNumber, true);
-            messageAdapter.addMessage(sentMessage);
+            
+            // Save message to database
+            long id = messageDbHelper.insertMessage(sentMessage);
+            
+            if (id > 0) {
+                // Successfully saved, refresh messages
+                loadMessagesFromDatabase();
+            } else {
+                // Database error, just add to adapter
+                messageAdapter.addMessage(sentMessage);
+            }
             
             // Clear the input field
             messageInput.setText("");
@@ -378,29 +446,4 @@ public class MessageFragment extends Fragment {
         }
     }
     
-    // Add some demo messages for UI testing (remove in production)
-    private void addDemoMessages() {
-        if (contact != null && messageAdapter != null && messagesRecyclerView != null) {
-            String phone = contact.getPhoneNumber();
-            if (phone == null || phone.isEmpty()) {
-                phone = "Unknown";
-            }
-            
-            // Simulate a conversation
-            long now = System.currentTimeMillis();
-            
-            try {
-                messageAdapter.addMessage(new Message("Hello! How are you?", phone, now - 3600000, false));
-                messageAdapter.addMessage(new Message("I'm doing well, thanks for asking!", phone, now - 3500000, true));
-                messageAdapter.addMessage(new Message("Do you want to meet up later?", phone, now - 3400000, false));
-                messageAdapter.addMessage(new Message("Sure, what time works for you?", phone, now - 3300000, true));
-                messageAdapter.addMessage(new Message("How about 6pm at the usual place?", phone, now - 3200000, false));
-                
-                // Scroll to the bottom
-                messagesRecyclerView.scrollToPosition(messageAdapter.getItemCount() - 1);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
 }

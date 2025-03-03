@@ -1,5 +1,7 @@
 package com.example.ft_hangouts;
 
+import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Menu;
@@ -14,6 +16,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.ft_hangouts.databinding.ActivityMainBinding;
+import com.example.ft_hangouts.service.SmsNotificationService;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -28,6 +31,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         setSupportActionBar(binding.appBarMain.toolbar);
+        
+        // Start SMS notification service
+        startSmsService();
         
         // Set up FAB based on current destination
         binding.appBarMain.fab.setOnClickListener(new View.OnClickListener() {
@@ -94,5 +100,18 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         return NavigationUI.navigateUp(navController, mAppBarConfiguration)
                 || super.onSupportNavigateUp();
+    }
+    
+    /**
+     * Start the SMS notification service
+     */
+    private void startSmsService() {
+        Intent serviceIntent = new Intent(this, SmsNotificationService.class);
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
     }
 }

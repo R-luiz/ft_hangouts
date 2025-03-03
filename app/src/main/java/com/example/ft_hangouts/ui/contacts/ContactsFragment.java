@@ -95,21 +95,11 @@ public class ContactsFragment extends Fragment implements ContactsAdapter.OnCont
                 return;
             }
             
-            // Null check on activity before proceeding
-            if (getActivity() == null) {
-                return;
-            }
-            
-            // Navigate to message screen using the MessageFragment's static method
-            Fragment fragment = MessageFragment.newInstance(contact);
-            
-            // Use fragment transaction instead of navigation component to avoid serialization issues
-            FragmentTransaction transaction = requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.nav_host_fragment_content_main, fragment)
-                .addToBackStack(null);
-                
-            transaction.commit();
+            // Navigate using Navigation component
+            NavController navController = Navigation.findNavController(requireView());
+            Bundle args = new Bundle();
+            args.putSerializable("contact", contact);
+            navController.navigate(R.id.action_nav_contacts_to_messageFragment, args);
         } catch (Exception e) {
             // Only show toast if context is available
             if (getContext() != null) {

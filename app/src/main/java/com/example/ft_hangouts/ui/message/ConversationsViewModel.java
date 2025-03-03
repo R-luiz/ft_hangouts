@@ -1,6 +1,7 @@
 package com.example.ft_hangouts.ui.message;
 
 import android.app.Application;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -8,8 +9,10 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.ft_hangouts.db.ContactDbHelper;
+import com.example.ft_hangouts.db.MessageDbHelper;
 import com.example.ft_hangouts.model.Contact;
 import com.example.ft_hangouts.model.Conversation;
+import com.example.ft_hangouts.model.Message;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,34 +31,70 @@ public class ConversationsViewModel extends AndroidViewModel {
     }
 
     public void loadConversations() {
-        // In a real app, this would query a database for actual conversations
-        // For demonstration purposes, we'll create mock conversations based on contacts
-        
         try {
-            ContactDbHelper dbHelper = ContactDbHelper.getInstance(getApplication());
-            List<Contact> contacts = dbHelper.getAllContacts();
+            ContactDbHelper contactDbHelper = ContactDbHelper.getInstance(getApplication());
+            MessageDbHelper messageDbHelper = MessageDbHelper.getInstance(getApplication());
             
+            // Get the last message for each contact
+            List<Message> lastMessages = messageDbHelper.getLastMessagesForAllContacts();
+            List<Conversation> conversationList = new ArrayList<>();
+            
+            for (Message message : lastMessages) {
+                String phoneNumber = message.getPhoneNumber();
+                
+                // Find the contact associated with this phone number
+                Contact contact = null;
+                try {
+                    contact = contactDbHelper.getContactByPhoneNumber(phoneNumber);
+                } catch (Exception e) {
+                    Log.e("ConversationsViewModel", "Error getting contact by phone number", e);
+                }
+                
+                // If no contact exists, create a basic one with just the phone number
+                if (contact == null) {
+                    contact = new Contact();
+                    contact.setPhoneNumber(phoneNumber);
+                    contact.setName(phoneNumber); // Use phone number as name if contact doesn't exist
+                }
+                
+                // Create conversation object
+                Conversation conversation = new Conversation(
+                        contact,
+                        message.getContent(),
+                        message.getTimestamp(),
+                        message.isSent()
+                );
+                
+                conversationList.add(conversation);
+            }
+            
+            if (conversationList.isEmpty()) {
+                // If there are no messages yet, create default conversations
+                createDefaultConversations(contactDbHelper);
+            } else {
+                conversations.postValue(conversationList);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            conversations.postValue(new ArrayList<>());
+        }
+    }
+    
+    private void createDefaultConversations(ContactDbHelper dbHelper) {
+        try {
+            List<Contact> contacts = dbHelper.getAllContacts();
             List<Conversation> conversationList = new ArrayList<>();
             long now = System.currentTimeMillis();
             
-            // Create mock conversations
+            // Create default conversations based on contacts
             for (int i = 0; i < contacts.size(); i++) {
                 Contact contact = contacts.get(i);
                 
                 // Only include contacts with phone numbers
                 if (contact.getPhoneNumber() != null && !contact.getPhoneNumber().isEmpty()) {
-                    String lastMessage;
-                    boolean isOutgoing;
-                    long timestamp = now - (i * 1800000); // 30 minute intervals
-                    
-                    // Alternate between incoming and outgoing messages
-                    if (i % 2 == 0) {
-                        lastMessage = "Hey, how are you doing?";
-                        isOutgoing = false;
-                    } else {
-                        lastMessage = "Let's meet tomorrow for coffee!";
-                        isOutgoing = true;
-                    }
+                    String lastMessage = "Start a conversation with " + contact.getName();
+                    boolean isOutgoing = true;
+                    long timestamp = now - (i * 60000); // 1 minute intervals
                     
                     Conversation conversation = new Conversation(contact, lastMessage, timestamp, isOutgoing);
                     conversationList.add(conversation);

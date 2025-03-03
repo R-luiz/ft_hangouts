@@ -1,5 +1,9 @@
 package com.example.ft_hangouts.ui.message;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,7 +14,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -18,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.ft_hangouts.R;
 import com.example.ft_hangouts.model.Conversation;
+import com.example.ft_hangouts.receivers.SmsReceiver;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
@@ -28,11 +32,30 @@ public class ConversationsFragment extends Fragment implements ConversationsAdap
     private RecyclerView recyclerView;
     private TextView textNoConversations;
     private ConversationsAdapter adapter;
+    private BroadcastReceiver smsReceiver;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_conversations, container, false);
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        
+        // Initialize the SMS receiver to update conversations when new messages arrive
+        smsReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.getAction() != null && intent.getAction().equals(SmsReceiver.SMS_RECEIVED_ACTION)) {
+                    // Reload conversations when a new SMS is received
+                    if (viewModel != null) {
+                        viewModel.loadConversations();
+                    }
+                }
+            }
+        };
     }
 
     @Override
@@ -78,7 +101,28 @@ public class ConversationsFragment extends Fragment implements ConversationsAdap
     @Override
     public void onResume() {
         super.onResume();
+        
+        // Register for SMS received broadcasts
+        if (getActivity() != null) {
+            getActivity().registerReceiver(smsReceiver, new IntentFilter(SmsReceiver.SMS_RECEIVED_ACTION));
+        }
+        
+        // Load conversations
         viewModel.loadConversations();
+    }
+    
+    @Override
+    public void onPause() {
+        super.onPause();
+        
+        // Unregister broadcast receiver
+        if (getActivity() != null) {
+            try {
+                getActivity().unregisterReceiver(smsReceiver);
+            } catch (IllegalArgumentException e) {
+                // Receiver not registered, ignore
+            }
+        }
     }
 
     @Override

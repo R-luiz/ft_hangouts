@@ -115,16 +115,10 @@ public class ContactDbHelper extends SQLiteOpenHelper {
 
             if (cursor != null && cursor.moveToFirst()) {
                 do {
-                    Contact contact = new Contact();
-                    contact.setId(cursor.getLong(cursor.getColumnIndexOrThrow(KEY_CONTACT_ID)));
-                    contact.setName(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_NAME)));
-                    contact.setPhoneNumber(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_PHONE)));
-                    contact.setEmail(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_EMAIL)));
-                    contact.setAddress(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_ADDRESS)));
-                    contact.setPhoto(cursor.getBlob(cursor.getColumnIndexOrThrow(KEY_CONTACT_PHOTO)));
-                    contact.setNotes(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_NOTES)));
-
-                    contacts.add(contact);
+                    Contact contact = createContactFromCursor(cursor);
+                    if (contact != null) {
+                        contacts.add(contact);
+                    }
                 } while (cursor.moveToNext());
             }
         } catch (Exception e) {
@@ -136,6 +130,26 @@ public class ContactDbHelper extends SQLiteOpenHelper {
         }
 
         return contacts;
+    }
+
+    /**
+     * Helper method to create a Contact object from a cursor
+     */
+    private Contact createContactFromCursor(Cursor cursor) {
+        try {
+            Contact contact = new Contact();
+            contact.setId(cursor.getLong(cursor.getColumnIndexOrThrow(KEY_CONTACT_ID)));
+            contact.setName(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_NAME)));
+            contact.setPhoneNumber(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_PHONE)));
+            contact.setEmail(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_EMAIL)));
+            contact.setAddress(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_ADDRESS)));
+            contact.setPhoto(cursor.getBlob(cursor.getColumnIndexOrThrow(KEY_CONTACT_PHOTO)));
+            contact.setNotes(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_NOTES)));
+            return contact;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     // Get a single contact by id
@@ -150,14 +164,32 @@ public class ContactDbHelper extends SQLiteOpenHelper {
             cursor = db.rawQuery(CONTACT_SELECT_QUERY, new String[]{String.valueOf(id)});
 
             if (cursor != null && cursor.moveToFirst()) {
-                contact = new Contact();
-                contact.setId(cursor.getLong(cursor.getColumnIndexOrThrow(KEY_CONTACT_ID)));
-                contact.setName(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_NAME)));
-                contact.setPhoneNumber(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_PHONE)));
-                contact.setEmail(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_EMAIL)));
-                contact.setAddress(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_ADDRESS)));
-                contact.setPhoto(cursor.getBlob(cursor.getColumnIndexOrThrow(KEY_CONTACT_PHOTO)));
-                contact.setNotes(cursor.getString(cursor.getColumnIndexOrThrow(KEY_CONTACT_NOTES)));
+                contact = createContactFromCursor(cursor);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+        }
+
+        return contact;
+    }
+    
+    // Get a contact by phone number
+    public Contact getContactByPhoneNumber(String phoneNumber) {
+        SQLiteDatabase db = getReadableDatabase();
+        Contact contact = null;
+        Cursor cursor = null;
+
+        try {
+            // Use parameter binding to prevent SQL injection
+            String CONTACT_SELECT_QUERY = "SELECT * FROM " + TABLE_CONTACTS + " WHERE " + KEY_CONTACT_PHONE + " = ?";
+            cursor = db.rawQuery(CONTACT_SELECT_QUERY, new String[]{phoneNumber});
+
+            if (cursor != null && cursor.moveToFirst()) {
+                contact = createContactFromCursor(cursor);
             }
         } catch (Exception e) {
             e.printStackTrace();
