@@ -90,29 +90,70 @@ public class MessageDbHelper extends SQLiteOpenHelper {
      */
     public List<Message> getMessagesForContact(String phoneNumber) {
         List<Message> messages = new ArrayList<>();
-        SQLiteDatabase db = getReadableDatabase();
-
-        String selection = COLUMN_PHONE_NUMBER + " = ?";
-        String[] selectionArgs = { phoneNumber };
-        String sortOrder = COLUMN_TIMESTAMP + " ASC";
-
-        try (Cursor cursor = db.query(
-                TABLE_MESSAGES,
-                null,
-                selection,
-                selectionArgs,
-                null,
-                null,
-                sortOrder)) {
-
-            if (cursor != null && cursor.moveToFirst()) {
-                do {
-                    Message message = cursorToMessage(cursor);
-                    messages.add(message);
-                } while (cursor.moveToNext());
+        
+        try {
+            // Validate input
+            if (phoneNumber == null || phoneNumber.isEmpty()) {
+                android.util.Log.e("MessageDbHelper", "Invalid phone number for query");
+                return messages;
             }
-        }
+            
+            SQLiteDatabase db = getReadableDatabase();
+            if (db == null) {
+                android.util.Log.e("MessageDbHelper", "Could not get readable database");
+                return messages;
+            }
+            
+            // Check if the table exists
+            try {
+                Cursor checkTable = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", 
+                    new String[]{TABLE_MESSAGES});
+                boolean tableExists = checkTable != null && checkTable.moveToFirst();
+                checkTable.close();
+                
+                if (!tableExists) {
+                    // Table doesn't exist yet, create it
+                    db.execSQL(SQL_CREATE_MESSAGES_TABLE);
+                    return messages; // Return empty list since table was just created
+                }
+            } catch (Exception e) {
+                android.util.Log.e("MessageDbHelper", "Error checking if table exists", e);
+                // Try creating the table anyway
+                try {
+                    db.execSQL(SQL_CREATE_MESSAGES_TABLE);
+                } catch (Exception e2) {
+                    // Ignore - table may already exist
+                }
+            }
 
+            String selection = COLUMN_PHONE_NUMBER + " = ?";
+            String[] selectionArgs = { phoneNumber };
+            String sortOrder = COLUMN_TIMESTAMP + " ASC";
+
+            try (Cursor cursor = db.query(
+                    TABLE_MESSAGES,
+                    null,
+                    selection,
+                    selectionArgs,
+                    null,
+                    null,
+                    sortOrder)) {
+
+                if (cursor != null && cursor.moveToFirst()) {
+                    do {
+                        Message message = cursorToMessage(cursor);
+                        if (message != null) {
+                            messages.add(message);
+                        }
+                    } while (cursor.moveToNext());
+                }
+            } catch (Exception e) {
+                android.util.Log.e("MessageDbHelper", "Error querying messages for contact: " + phoneNumber, e);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("MessageDbHelper", "Fatal error in getMessagesForContact", e);
+        }
+        
         return messages;
     }
 

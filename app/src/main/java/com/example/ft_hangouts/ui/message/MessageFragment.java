@@ -87,8 +87,22 @@ public class MessageFragment extends Fragment {
             }
         }
         
-        // Initialize database helper
-        messageDbHelper = MessageDbHelper.getInstance(requireContext());
+        // Initialize database helper with error handling
+        try {
+            Context context = getContext();
+            if (context != null) {
+                messageDbHelper = MessageDbHelper.getInstance(context);
+                
+                // Check if database helper was created successfully
+                if (messageDbHelper == null) {
+                    Log.e("MessageFragment", "Failed to initialize MessageDbHelper");
+                }
+            } else {
+                Log.e("MessageFragment", "Context is null, cannot initialize database helper");
+            }
+        } catch (Exception e) {
+            Log.e("MessageFragment", "Error initializing database helper", e);
+        }
         
         // Initialize permission launcher
         requestPermissionLauncher = registerForActivityResult(
@@ -278,19 +292,65 @@ public class MessageFragment extends Fragment {
      * Load messages from database and update UI
      */
     private void loadMessagesFromDatabase() {
-        if (contact != null && messageAdapter != null) {
+        if (contact == null || messageAdapter == null) {
+            return;
+        }
+        
+        try {
+            // Check if database helper is initialized
+            if (messageDbHelper == null) {
+                Log.e("MessageFragment", "Database helper is null");
+                messageAdapter.setMessages(new ArrayList<>());
+                return;
+            }
+            
+            // Check if phone number is valid
+            String phoneNumber = contact.getPhoneNumber();
+            if (phoneNumber == null || phoneNumber.isEmpty()) {
+                Log.e("MessageFragment", "Contact has no phone number");
+                messageAdapter.setMessages(new ArrayList<>());
+                return;
+            }
+            
+            // Get messages from database
+            List<Message> messages;
             try {
-                List<Message> messages = messageDbHelper.getMessagesForContact(contact.getPhoneNumber());
-                messageAdapter.setMessages(messages);
-                
-                // Scroll to bottom if there are messages
-                if (messages.size() > 0 && messagesRecyclerView != null) {
-                    messagesRecyclerView.scrollToPosition(messages.size() - 1);
+                messages = messageDbHelper.getMessagesForContact(phoneNumber);
+                if (messages == null) {
+                    messages = new ArrayList<>();
                 }
             } catch (Exception e) {
-                Toast.makeText(requireContext(), "Error loading messages", Toast.LENGTH_SHORT).show();
-                e.printStackTrace();
+                Log.e("MessageFragment", "Error loading messages from database", e);
+                messages = new ArrayList<>();
             }
+            
+            // Update UI
+            messageAdapter.setMessages(messages);
+            
+            // Scroll to bottom if there are messages
+            if (messages.size() > 0 && messagesRecyclerView != null) {
+                try {
+                    messagesRecyclerView.post(() -> {
+                        try {
+                            messagesRecyclerView.scrollToPosition(messages.size() - 1);
+                        } catch (Exception e) {
+                            Log.e("MessageFragment", "Error scrolling to bottom", e);
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.e("MessageFragment", "Error posting scroll action", e);
+                }
+            }
+        } catch (Exception e) {
+            Log.e("MessageFragment", "Error in loadMessagesFromDatabase", e);
+            try {
+                if (isAdded() && getContext() != null) {
+                    Toast.makeText(requireContext(), "Error loading messages", Toast.LENGTH_SHORT).show();
+                }
+            } catch (Exception toastException) {
+                // Ignore toast errors
+            }
+            e.printStackTrace();
         }
     }
 
@@ -423,21 +483,57 @@ public class MessageFragment extends Fragment {
             Message sentMessage = new Message(message, phoneNumber, true);
             
             // Save message to database
-            long id = messageDbHelper.insertMessage(sentMessage);
-            
-            if (id > 0) {
-                // Successfully saved, refresh messages
-                loadMessagesFromDatabase();
-            } else {
-                // Database error, just add to adapter
-                messageAdapter.addMessage(sentMessage);
+            try {
+                if (messageDbHelper != null) {
+                    long id = messageDbHelper.insertMessage(sentMessage);
+                    
+                    if (id > 0) {
+                        // Successfully saved, refresh messages
+                        loadMessagesFromDatabase();
+                    } else {
+                        Log.e("MessageFragment", "Database returned invalid ID when saving message");
+                        // Database error, just add to adapter
+                        if (messageAdapter != null) {
+                            messageAdapter.addMessage(sentMessage);
+                        }
+                    }
+                } else {
+                    Log.e("MessageFragment", "Cannot save message - database helper is null");
+                    // No database helper, just add to adapter
+                    if (messageAdapter != null) {
+                        messageAdapter.addMessage(sentMessage);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e("MessageFragment", "Error saving message to database", e);
+                // Exception saving to database, just add to adapter
+                if (messageAdapter != null) {
+                    messageAdapter.addMessage(sentMessage);
+                }
             }
             
             // Clear the input field
-            messageInput.setText("");
+            if (messageInput != null) {
+                messageInput.setText("");
+            }
             
             // Scroll to the bottom
-            messagesRecyclerView.scrollToPosition(messageAdapter.getItemCount() - 1);
+            try {
+                if (messagesRecyclerView != null && messageAdapter != null) {
+                    final int position = messageAdapter.getItemCount() - 1;
+                    if (position >= 0) {
+                        messagesRecyclerView.post(() -> {
+                            try {
+                                messagesRecyclerView.scrollToPosition(position);
+                            } catch (Exception e) {
+                                Log.e("MessageFragment", "Error scrolling to position " + position, e);
+                            }
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                Log.e("MessageFragment", "Error setting up scroll", e);
+            }
             
         } catch (Exception e) {
             Toast.makeText(requireContext(), "Failed to send SMS: " + e.getMessage(), 
